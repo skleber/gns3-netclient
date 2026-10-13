@@ -33,7 +33,7 @@ fi
 
 echo -e "\n${BOLD}${GREEN}DNS Resolvers (/etc/resolv.conf):${RESET}"
 if [ -f /etc/resolv.conf ]; then
-    grep -E '^(nameserver|search|domain)' /etc/resolv.conf || echo "  (no nameserver configured)"
+    grep -E '^\s*(nameserver|search|domain)' /etc/resolv.conf || echo "  (no nameserver configured)"
 else
     echo "  /etc/resolv.conf not found"
 fi

@@ -20,7 +20,7 @@ TARGET="${1:-}"
 
 if [ -z "$TARGET" ]; then
     # Auto-detect search domain from /etc/resolv.conf, default to www.lab.local
-    SEARCH_DOM=$(grep -E '^search' /etc/resolv.conf 2>/dev/null | awk '{print $2}' | head -n1)
+    SEARCH_DOM=$(grep -E '^\s*(search|domain)\s+' /etc/resolv.conf 2>/dev/null | awk '{print $2; exit}')
     if [ -n "$SEARCH_DOM" ]; then
         TARGET="www.${SEARCH_DOM}"
     else
@@ -31,7 +31,7 @@ fi
 echo -e "${BOLD}${CYAN}Testing DNS resolution for: ${YELLOW}${TARGET}${RESET}"
 
 # Find configured nameservers
-NAMESERVERS=$(grep -E '^nameserver' /etc/resolv.conf 2>/dev/null | awk '{print $2}' || true)
+NAMESERVERS=$(grep -E '^\s*nameserver\s+' /etc/resolv.conf 2>/dev/null | awk '{printf "%s%s", (NR>1?", ":""), $2}' || true)
 if [ -z "$NAMESERVERS" ]; then
     echo -e "${RED}[!] No nameservers found in /etc/resolv.conf!${RESET}"
 else

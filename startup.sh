@@ -10,13 +10,12 @@
 
 set -e
 
-# Configuration defaults - designed for zero-config operation out of the box in standard lab subnets
+# Capture any user-specified overrides from environment
+USER_GATEWAY="${GATEWAY:-}"
+USER_DNS="${DNS:-}"
+USER_SEARCH="${SEARCH_DOMAIN:-}"
+
 CLIENT_HOSTNAME="${HOSTNAME:-netclient}"
-IP_ETH0="${IP_ETH0:-10.0.0.100/24}"
-IP_ETH1="${IP_ETH1:-none}"
-GATEWAY="${GATEWAY:-10.0.0.254}"
-DNS="${DNS:-10.0.0.1}"
-SEARCH_DOMAIN="${SEARCH_DOMAIN:-lab.local}"
 WAIT_LINK="${WAIT_LINK:-0}"
 
 # Optional link settling delay
@@ -47,18 +46,29 @@ if [ -f /etc/network/interfaces ] && grep -E '^\s*(iface|auto)\s+eth' /etc/netwo
         IFUP_CONFIGURED=1
     fi
 
-    # Parse dns-nameservers and dns-search if resolv.conf was not already populated
-    if ! grep -q "nameserver" /etc/resolv.conf 2>/dev/null; then
-        DNS_NS=$(grep -E '^\s*dns-nameservers' /etc/network/interfaces 2>/dev/null | awk '{$1=""; print $0}')
-        DNS_SEARCH=$(grep -E '^\s*dns-search' /etc/network/interfaces 2>/dev/null | awk '{print $2}')
-        if [ -n "$DNS_NS" ]; then
-            {
-                [ -n "$DNS_SEARCH" ] && echo "search $DNS_SEARCH"
-                for ns in $DNS_NS; do
-                    [ -n "$ns" ] && echo "nameserver $ns"
-                done
-            } > /etc/resolv.conf 2>/dev/null || true
-        fi
+    # Ensure default gateway from /etc/network/interfaces replaces any pre-existing route
+    IFACE_GW=$(grep -E '^\s*gateway\s+' /etc/network/interfaces 2>/dev/null | awk '{print $2; exit}')
+    if [ -n "$IFACE_GW" ]; then
+        ip route replace default via "$IFACE_GW" 2>/dev/null || ip route add default via "$IFACE_GW" 2>/dev/null || true
+    fi
+
+    # Parse dns-nameservers and dns-search / dns-domain from /etc/network/interfaces
+    DNS_NS=$(grep -E '^\s*dns-nameservers?' /etc/network/interfaces 2>/dev/null | awk '{$1=""; print $0}')
+    DNS_SEARCH=$(grep -E '^\s*(dns-search|dns-domain)' /etc/network/interfaces 2>/dev/null | awk '{$1=""; sub(/^[ \t]+/, ""); print $0; exit}')
+    if [ -n "$DNS_NS" ]; then
+        {
+            [ -n "$DNS_SEARCH" ] && echo "search $DNS_SEARCH"
+            for ns in $DNS_NS; do
+                [ -n "$ns" ] && echo "nameserver $ns"
+            done
+        } > /etc/resolv.conf 2>/dev/null || true
+    elif [ -n "$USER_DNS" ]; then
+        {
+            [ -n "$USER_SEARCH" ] && echo "search $USER_SEARCH"
+            for ns in $(echo "$USER_DNS" | tr ',' ' '); do
+                [ -n "$ns" ] && echo "nameserver $ns"
+            done
+        } > /etc/resolv.conf 2>/dev/null || true
     fi
 fi
 
@@ -94,9 +104,9 @@ if [ "$IFUP_CONFIGURED" -eq 0 ]; then
 
     IP_ETH0="${IP_ETH0:-10.0.0.100/24}"
     IP_ETH1="${IP_ETH1:-none}"
-    GATEWAY="${GATEWAY:-10.0.0.254}"
-    DNS="${DNS:-10.0.0.1}"
-    SEARCH_DOMAIN="${SEARCH_DOMAIN:-lab.local}"
+    GATEWAY="${USER_GATEWAY:-10.0.0.254}"
+    DNS="${USER_DNS:-10.0.0.1}"
+    SEARCH_DOMAIN="${USER_SEARCH:-lab.local}"
 
     configure_interface "eth0" "$IP_ETH0"
     configure_interface "eth1" "$IP_ETH1"
@@ -115,6 +125,61 @@ if [ "$IFUP_CONFIGURED" -eq 0 ]; then
     fi
 fi
 
+# Helper functions for banner network status display
+get_iface_ip() {
+    local iface="$1"
+    if [ ! -d "/sys/class/net/$iface" ]; then
+        echo "not present"
+        return
+    fi
+    local addrs
+    addrs=$(ip -br addr show "$iface" 2>/dev/null | awk '{
+        out = ""
+        for (i = 3; i <= NF; i++) {
+            if ($i !~ /^fe80:/) {
+                out = (out == "" ? $i : out ", " $i)
+            }
+        }
+        print out
+    }')
+    if [ -n "$addrs" ]; then
+        echo "$addrs"
+    else
+        echo "unconfigured"
+    fi
+}
+
+get_default_gateway() {
+    local gw
+    gw=$(ip route show default 2>/dev/null | awk '{
+        for (i = 1; i <= NF; i++) {
+            if ($i == "via") {
+                val = $(i+1)
+                if (!seen[val]++) out = (out == "" ? val : out ", " val)
+            }
+        }
+    } END { print out }')
+    if [ -z "$gw" ]; then
+        gw=$(ip route show default 2>/dev/null | awk '/default dev/ {print $3; exit}')
+    fi
+    echo "${gw:-none}"
+}
+
+get_dns_info() {
+    local ns search_dom
+    ns=$(grep -E '^\s*nameserver\s+' /etc/resolv.conf 2>/dev/null | awk '{printf "%s%s", (NR>1?", ":""), $2}')
+    search_dom=$(grep -E '^\s*(search|domain)\s+' /etc/resolv.conf 2>/dev/null | awk '{$1=""; sub(/^[ \t]+/, ""); print $0; exit}')
+    if [ -n "$ns" ]; then
+        if [ -n "$search_dom" ]; then
+            echo "$ns (search: $search_dom)"
+        else
+            echo "$ns"
+        fi
+    else
+        echo "none"
+    fi
+}
+
 # Print startup banner
 cat << "EOF"
 
@@ -128,10 +193,17 @@ cat << "EOF"
 ========================================================================
 EOF
 
-echo " Interface eth0: $(ip -br addr show eth0 2>/dev/null | awk '{print $3}' || echo 'down/unconfigured')"
-echo " Interface eth1: $(ip -br addr show eth1 2>/dev/null | awk '{print $3}' || echo 'down/unconfigured')"
-echo " Default Gateway: ${GATEWAY:-none}"
-echo " DNS Resolver:    ${DNS:-none} (search: ${SEARCH_DOMAIN:-none})"
+# Display all eth interfaces (ensuring eth0 and eth1 are always listed)
+eth_ifaces=$(ls -d /sys/class/net/eth* 2>/dev/null | xargs -n1 basename 2>/dev/null | sort -V || true)
+[ -z "$eth_ifaces" ] && eth_ifaces="eth0 eth1"
+if ! echo "$eth_ifaces" | grep -qw "eth1"; then
+    eth_ifaces="$eth_ifaces eth1"
+fi
+for iface in $eth_ifaces; do
+    echo " Interface ${iface}: $(get_iface_ip "$iface")"
+done
+echo " Default Gateway: $(get_default_gateway)"
+echo " DNS Resolver:    $(get_dns_info)"
 echo ""
 echo " Pre-installed Tools:"
 echo "   * Connectivity:  ping, nc (netcat-bsd), curl"

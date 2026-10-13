@@ -105,6 +105,8 @@ iface eth0 inet static
     address 10.0.0.100
     netmask 255.255.255.0
     gateway 10.0.0.254
+    dns-nameservers 10.0.0.1
+    dns-search lab.local
     up echo nameserver 10.0.0.1 > /etc/resolv.conf
     up echo search lab.local >> /etc/resolv.conf
 
@@ -117,7 +119,7 @@ iface eth0 inet static
 # iface eth1 inet dhcp
 ```
 
-When the node boots, `ifupdown` automatically reads this configuration and applies all IP addresses, gateways, and DNS settings.
+When the node boots, the configuration is automatically applied. Both standard Debian-style `dns-nameservers`/`dns-search` directives and `up echo ...` hooks are supported for DNS configuration. The startup splash screen dynamically reflects active IP assignments, active default gateway from the routing table, and active DNS resolvers from `/etc/resolv.conf`.
 
 ### Method B: Environment Variables (Alternative / Headless)
 
