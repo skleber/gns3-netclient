@@ -124,7 +124,7 @@ cat << "EOF"
  | |\  |  __/ |_  | |___| | |  __/ | | | |_ 
  |_| \_|\___|\__|  \____|_|_|\___|_| |_|\__|
 
- GNS3 Network Client Appliance (Debian Bookworm)
+ GNS3 Network Client Appliance (Alpine Linux)
 ========================================================================
 EOF
 

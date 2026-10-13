@@ -13,42 +13,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-FROM debian:bookworm-slim
+FROM alpine:latest
 
 LABEL org.opencontainers.image.title="GNS3 Network Client Appliance" \
-      org.opencontainers.image.description="Minimal Debian-based Linux network client for GNS3 network analysis, teaching labs, and simulations" \
+      org.opencontainers.image.description="Lightweight Alpine-based Linux network client for GNS3 network analysis, teaching labs, and simulations" \
       org.opencontainers.image.url="https://github.com/skleber/gns3-netclient" \
       org.opencontainers.image.source="https://github.com/skleber/gns3-netclient" \
       org.opencontainers.image.licenses="GPL-3.0-or-later"
 
-# Prevent interactive prompts during apt install
-ENV DEBIAN_FRONTEND=noninteractive \
-    SHELL=/bin/bash \
+ENV SHELL=/bin/bash \
     TERM=xterm-256color
 
 # Install required networking tools, runtimes, and shell utilities
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
     bash \
     bash-completion \
     netcat-openbsd \
-    iputils-ping \
-    bind9-dnsutils \
+    iputils \
+    bind-tools \
     tcpdump \
     python3 \
-    default-jre-headless \
+    openjdk17-jre-headless \
     iproute2 \
-    ifupdown \
-    isc-dhcp-client \
+    ifupdown-ng \
     curl \
     nano \
     less \
-    ca-certificates \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/doc/* /usr/share/man/*
+    ca-certificates
 
 # Configure terminal environment and completion
-COPY etc/bash.bashrc /etc/bash.bashrc
-RUN echo "source /etc/bash.bashrc" >> /root/.bashrc
+COPY etc/bash.bashrc /etc/bash/bashrc
+RUN mkdir -p /etc/bash \
+    && ln -sf /etc/bash/bashrc /etc/bash.bashrc \
+    && echo "source /etc/bash/bashrc" >> /root/.bashrc
 
 # Default network configuration (GNS3 Edit config template)
 COPY etc/network/interfaces /etc/network/interfaces

@@ -1,10 +1,11 @@
 # GNS3 Network Client Appliance
 
-Lightweight Debian-based Docker image optimized for **GNS3 network topology simulations, protocol analysis, and classroom teaching**. Provides a clean, modern interactive terminal equipped with standard network diagnostic tools, Python 3, and Java runtime, with 2 network interfaces by default.
+Lightweight Alpine-based Docker image optimized for **GNS3 network topology simulations, protocol analysis, and classroom teaching**. Provides a clean, modern interactive terminal equipped with standard network diagnostic tools, Python 3, and Java runtime, with 2 network interfaces by default.
 
 > **Repository**: [https://github.com/skleber/gns3-netclient](https://github.com/skleber/gns3-netclient)  
 > **Author & Maintainer**: Stephan Kleber  
-> **License**: [GNU General Public License v3.0 (GPLv3)](LICENCE)
+> **License**: [GNU General Public License v3.0 (GPLv3)](LICENCE)  
+> **Branches**: `master` (Alpine-based, ~349 MB) &bull; [`debian-full`](https://github.com/skleber/gns3-netclient/tree/debian-full) (Debian Bookworm, ~554 MB)
 
 ---
 
@@ -16,18 +17,18 @@ Lightweight Debian-based Docker image optimized for **GNS3 network topology simu
   * Colorized aliases pre-configured (`ls --color=auto`, `grep --color=auto`, `ip -color=auto`)
   * Informational welcome banner displaying active interface IPs, gateway, and DNS configuration
   * Resilient shell session (exiting the shell respawns without terminating the GNS3 node)
-* **Essential Network Analysis Toolset (Debian Packages)**:
-  * `netcat-bsd` (`netcat-openbsd`): Port scanning, TCP/UDP client/listener, banner grabbing
-  * `ping` (`iputils-ping`): ICMP echo requests and latency measurement
-  * `host` & `dig` (`bind9-dnsutils`): Modern DNS inspection, zone transfer testing, record lookups
+* **Essential Network Analysis Toolset**:
+  * `netcat-openbsd` (`nc`): Port scanning, TCP/UDP client/listener, banner grabbing
+  * `ping` (`iputils`): ICMP echo requests and latency measurement
+  * `host` & `dig` (`bind-tools`): Modern DNS inspection, zone transfer testing, record lookups
   * `tcpdump`: Real-time packet sniffing and capture
   * `iproute2` (`ip`, `ss`): Modern routing and socket inspection
-  * `isc-dhcp-client` (`dhclient`): Dynamic IP configuration support
+  * `ifupdown-ng`: Native `/etc/network/interfaces` support for GNS3 "Edit config"
   * `curl`: HTTP/HTTPS protocol requests and API inspection
   * `nano`, `less`: Interactive file editing and paging
 * **Language Runtimes Pre-installed**:
   * `python3`: Interactive Python interpreter for socket scripting and automation
-  * `java` / `openjdk` (`default-jre-headless`): Headless Java runtime for client applications and utilities
+  * `java` / `openjdk` (`openjdk17-jre-headless`): Headless Java 17 runtime for client applications and utilities
 * **Dual Network Interfaces by Default**:
   * Configured with **2 network adapters** (`eth0` and `eth1`) out of the box in the GNS3 appliance template
   * Ideal for multi-homed hosts, routing labs, firewall testing, or gateway topologies
