@@ -2,7 +2,7 @@
   "appliance_id": "2f9c29d2-b23b-4dff-8bba-52989f5b5ca2",
   "name": "Network Client",
   "category": "guest",
-  "description": "Minimal Debian-based Linux network client appliance for GNS3 network simulations, testing, and teaching labs. Equipped with essential networking tools (ping, dig, host, netcat-bsd, tcpdump), Python 3, OpenJDK Java runtime, beautiful colored terminal with tab completion, and default 2 interfaces for flexible lab topologies. Pre-configured to seamlessly resolve against gns3-bind in the same subnet.",
+  "description": "Minimal Debian-based Linux network client appliance for GNS3 network simulations, testing, and teaching labs. Equipped with essential networking tools (ping, dig, host, netcat-bsd, tcpdump), Python 3, OpenJDK Java runtime, beautiful colored terminal with tab completion, and default 2 interfaces for flexible lab topologies. Pre-configured with zero-config defaults for quick deployment in standard lab networks.",
   "vendor_name": "Debian",
   "vendor_url": "https://www.debian.org/",
   "product_name": "Network Client Appliance",

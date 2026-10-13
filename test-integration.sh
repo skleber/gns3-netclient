@@ -6,24 +6,23 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# Integration test script for gns3-netclient and gns3-bind
+# Integration test script for gns3-netclient and a lab DNS server
 set -e
 
 # Cleanup any previous test artifacts
-docker rm -f test-bind >/dev/null 2>&1 || true
+docker rm -f test-dns-server >/dev/null 2>&1 || true
 docker network rm labnet >/dev/null 2>&1 || true
 
 echo "=== [Step 1] Creating isolated lab network (10.0.0.0/24) ==="
 docker network create --subnet=10.0.0.0/24 --gateway=10.0.0.254 labnet
 
-echo "=== [Step 2] Starting gns3-bind on 10.0.0.1 ==="
-docker run -d --name test-bind --net labnet --ip 10.0.0.1 \
-  -e QUERY_LOG=yes \
-  -e AUTHORITATIVE=self \
-  -e 'DOMAIN_lab_local=@,A,10.0.0.1 ns,A,10.0.0.1 www,A,10.0.0.10 mail,A,10.0.0.20 client,A,10.0.0.100 @,MX,10,mail.lab.local.' \
-  gns3-bind:latest
+echo "=== [Step 2] Starting test DNS server on 10.0.0.1 ==="
+docker run -d --name test-dns-server --net labnet --ip 10.0.0.1 alpine:latest sh -c '
+  apk add --no-cache dnsmasq >/dev/null 2>&1
+  dnsmasq -k -d --address=/www.lab.local/10.0.0.10 --mx-host=lab.local,mail.lab.local,10
+'
 
-sleep 2
+sleep 3
 
 echo "=== [Step 3] Running integration tests from gns3-netclient (10.0.0.100) ==="
 docker run --rm --net labnet --ip 10.0.0.100 \
@@ -32,10 +31,10 @@ docker run --rm --net labnet --ip 10.0.0.100 \
   -e DNS=10.0.0.1 \
   -e SEARCH_DOMAIN=lab.local \
   gns3-netclient:latest bash -c '
-    echo "--- Test A: Ping BIND server (10.0.0.1) ---"
+    echo "--- Test A: Ping DNS server (10.0.0.1) ---"
     ping -c 2 10.0.0.1
 
-    echo -e "\n--- Test B: UDP Port scan BIND server port 53 with nc ---"
+    echo -e "\n--- Test B: UDP Port scan DNS server port 53 with nc ---"
     nc -z -v -u -w 2 10.0.0.1 53
 
     echo -e "\n--- Test C: dig query for www.lab.local ---"
@@ -60,11 +59,11 @@ docker run --rm --net labnet --ip 10.0.0.100 \
     test-dns www.lab.local
 '
 
-echo "=== [Step 4] Checking gns3-bind query log ==="
-docker logs test-bind | tail -n 12
+echo "=== [Step 4] Checking DNS server query log ==="
+docker logs test-dns-server | tail -n 12
 
 echo "=== [Step 5] Cleaning up test containers & network ==="
-docker rm -f test-bind >/dev/null
+docker rm -f test-dns-server >/dev/null
 docker network rm labnet >/dev/null
 
 echo "=== [SUCCESS] All integration tests passed! ==="

@@ -10,7 +10,7 @@
 
 set -e
 
-# Configuration defaults - designed to seamlessly pair with gns3-bind out of the box
+# Configuration defaults - designed for zero-config operation out of the box in standard lab subnets
 CLIENT_HOSTNAME="${HOSTNAME:-netclient}"
 IP_ETH0="${IP_ETH0:-10.0.0.100/24}"
 IP_ETH1="${IP_ETH1:-none}"

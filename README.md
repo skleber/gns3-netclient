@@ -31,29 +31,29 @@ Lightweight Debian-based Docker image optimized for **GNS3 network topology simu
 * **Dual Network Interfaces by Default**:
   * Configured with **2 network adapters** (`eth0` and `eth1`) out of the box in the GNS3 appliance template
   * Ideal for multi-homed hosts, routing labs, firewall testing, or gateway topologies
-* **Seamless `gns3-bind` Interoperability**:
-  * Automatically configured to connect to the [`gns3-bind`](https://github.com/skleber/gns3-bind) DNS server when placed on the same lab network
+* **Default Lab Network Interoperability**:
+  * Pre-configured with zero-configuration defaults to automatically resolve against a local DNS server (`10.0.0.1`) when placed on the same lab network
 
 ---
 
-## Seamless Lab Integration with `gns3-bind`
+## Default Lab Network Integration
 
-The appliance defaults are coordinated with the default demonstration configuration of [`gns3-bind`](https://github.com/skleber/gns3-bind):
+The appliance defaults are coordinated for zero-configuration startup in standard demonstration and teaching lab topologies:
 
-| Setting | `gns3-netclient` Default | `gns3-bind` Default Demo Mapping |
+| Setting | `gns3-netclient` Default | Lab Topology Mapping |
 |---|---|---|
-| **`eth0` IP** | `10.0.0.100/24` | Pre-mapped to `client.lab.local` (`client,A,10.0.0.100`) |
-| **DNS Resolver** | `10.0.0.1` | Points directly to BIND DNS server (`ns.lab.local`) |
-| **Search Domain** | `lab.local` | Default demo zone hosted by `gns3-bind` |
-| **Default Gateway** | `10.0.0.254` | Matches `router.lab.local` in `gns3-bind` zone |
+| **`eth0` IP** | `10.0.0.100/24` | Default client host address (`client.lab.local`) |
+| **DNS Resolver** | `10.0.0.1` | Points to the local lab DNS server (`ns.lab.local`) |
+| **Search Domain** | `lab.local` | Default local domain |
+| **Default Gateway** | `10.0.0.254` | Matches default router address (`router.lab.local`) |
 
-When you connect `gns3-netclient` and `gns3-bind` to the same GNS3 Ethernet switch, resolution and connectivity work **immediately without any manual setup**:
+When connected to the same Ethernet switch as a local DNS server (`10.0.0.1`), resolution and connectivity work **immediately without manual configuration**:
 
 ```bash
 # Verify connectivity to DNS server
 ping 10.0.0.1
 
-# Query demo hosts hosted on gns3-bind
+# Query demo hosts
 host www.lab.local
 dig www.lab.local
 dig mail.lab.local MX
@@ -98,7 +98,7 @@ Right-click the node in GNS3 &rarr; **Edit config**. This opens the standard `/e
 auto lo
 iface lo inet loopback
 
-# eth0: Pre-configured for gns3-bind (10.0.0.1)
+# eth0: Pre-configured default lab IP and DNS (10.0.0.1)
 auto eth0
 iface eth0 inet static
     address 10.0.0.100
@@ -161,7 +161,7 @@ netclient:~# test-dns mail.lab.local
 
 ## Automated Integration Testing
 
-An automated test script [`test-integration.sh`](test-integration.sh) is provided to verify all tools and end-to-end interoperability with [`gns3-bind`](https://github.com/skleber/gns3-bind). It creates an isolated Docker test network, launches both containers, and tests ping, netcat port scanning, `dig`, `host`, Python socket lookups, OpenJDK runtime, and real-time BIND query logging:
+An automated test script [`test-integration.sh`](test-integration.sh) is provided to verify all tools and end-to-end network interoperability with a local DNS server. It creates an isolated Docker test network, launches a test DNS server alongside `gns3-netclient`, and verifies ping, netcat port scanning, `dig`, `host`, Python socket lookups, OpenJDK runtime, packet capture, and DNS server query logs:
 
 ```bash
 ./test-integration.sh
@@ -173,7 +173,7 @@ An automated test script [`test-integration.sh`](test-integration.sh) is provide
 
 ### Scenario A: Simple Client-Server Lab
 ```
-[ gns3-bind ] (eth0: 10.0.0.1/24)
+[ DNS Server ] (eth0: 10.0.0.1/24)
       |
   [ Switch ]
       |

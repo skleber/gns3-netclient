@@ -13,7 +13,7 @@
 auto lo
 iface lo inet loopback
 
-# eth0: Pre-configured to seamlessly resolve against gns3-bind (10.0.0.1)
+# eth0: Pre-configured default lab network static IP and DNS resolver (10.0.0.1)
 auto eth0
 iface eth0 inet static
     address 10.0.0.100
