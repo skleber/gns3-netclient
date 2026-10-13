@@ -1,4 +1,12 @@
 #!/bin/bash
+# Copyright (C) 2026 Stephan Kleber. All Rights Reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Integration test script for gns3-netclient and gns3-bind
 set -e
 
 # Cleanup any previous test artifacts

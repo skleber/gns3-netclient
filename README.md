@@ -181,13 +181,21 @@ An automated test script [`test-integration.sh`](test-integration.sh) is provide
 ```
 
 ### Scenario B: Multi-Homed Host (2 Interfaces)
-Configure in GNS3 container properties:
+Via GNS3 **Edit config** (`/etc/network/interfaces`):
 ```ini
-IP_ETH0=192.168.1.50/24
-IP_ETH1=10.0.0.50/24
-GATEWAY=192.168.1.1
-DNS=10.0.0.1
+auto eth0
+iface eth0 inet static
+    address 192.168.1.50
+    netmask 255.255.255.0
+    gateway 192.168.1.1
+    up echo nameserver 10.0.0.1 > /etc/resolv.conf
+
+auto eth1
+iface eth1 inet static
+    address 10.0.0.50
+    netmask 255.255.255.0
 ```
+*(Or via environment variables: `IP_ETH0=192.168.1.50/24`, `IP_ETH1=10.0.0.50/24`, `GATEWAY=192.168.1.1`, `DNS=10.0.0.1`)*
 
 ```
 [ Management LAN ]            [ Lab Network ]
@@ -199,16 +207,19 @@ DNS=10.0.0.1
 ```
 
 ### Scenario C: Dynamic Host Configuration (DHCP)
-Configure in GNS3 container properties:
+Via GNS3 **Edit config** (`/etc/network/interfaces`):
 ```ini
-IP_ETH0=dhcp
-IP_ETH1=none
+auto eth0
+iface eth0 inet dhcp
 ```
-The node automatically runs `dhclient` on startup to acquire IP, gateway, and DNS from a DHCP server.
+*(Or via environment variables: `IP_ETH0=dhcp`)*
+
+The node automatically invokes `dhclient` on startup to acquire an IP address, gateway route, and DNS resolvers from a network DHCP server.
 
 ---
 
 ## Authors & License
 
 * **Author & Maintainer**: Stephan Kleber (Copyright (C) 2026) &mdash; [skleber/gns3-netclient](https://github.com/skleber/gns3-netclient)
-* **License**: [GNU General Public License v3.0 (GPLv3)](LICENCE)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License v3.0 (GPLv3)](LICENCE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.

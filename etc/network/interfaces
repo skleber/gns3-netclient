@@ -1,5 +1,11 @@
-# /etc/network/interfaces
-# GNS3 Network Configuration for Network Client
+# Copyright (C) 2026 Stephan Kleber. All Rights Reserved.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# /etc/network/interfaces - GNS3 Network Configuration for Network Client
 #
 # You can edit this configuration via GNS3: Right-click node -> "Edit config"
 
