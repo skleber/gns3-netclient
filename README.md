@@ -126,6 +126,16 @@ netclient:~# test-dns mail.lab.local
 
 ---
 
+## Automated Integration Testing
+
+An automated test script [`test-integration.sh`](test-integration.sh) is provided to verify all tools and end-to-end interoperability with [`gns3-bind`](https://github.com/skleber/gns3-bind). It creates an isolated Docker test network, launches both containers, and tests ping, netcat port scanning, `dig`, `host`, Python socket lookups, OpenJDK runtime, and real-time BIND query logging:
+
+```bash
+./test-integration.sh
+```
+
+---
+
 ## Example Network Topologies
 
 ### Scenario A: Simple Client-Server Lab
