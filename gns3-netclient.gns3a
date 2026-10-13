@@ -1,0 +1,21 @@
+{
+  "appliance_id": "2f9c29d2-b23b-4dff-8bba-52989f5b5ca2",
+  "name": "Network Client",
+  "category": "guest",
+  "description": "Minimal Debian-based Linux network client appliance for GNS3 network simulations, testing, and teaching labs. Equipped with essential networking tools (ping, dig, host, netcat-bsd, tcpdump), Python 3, OpenJDK Java runtime, beautiful colored terminal with tab completion, and default 2 interfaces for flexible lab topologies. Pre-configured to seamlessly resolve against gns3-bind in the same subnet.",
+  "vendor_name": "Debian",
+  "vendor_url": "https://www.debian.org/",
+  "product_name": "Network Client Appliance",
+  "product_url": "https://github.com/skleber/gns3-netclient",
+  "registry_version": 4,
+  "status": "stable",
+  "maintainer": "Stephan Kleber",
+  "maintainer_email": "stephan.kleber@rwu.de",
+  "symbol": ":/symbols/classic/computer.svg",
+  "docker": {
+    "adapters": 2,
+    "image": "ghcr.io/skleber/gns3-netclient:latest",
+    "console_type": "telnet",
+    "environment": "IP_ETH0=10.0.0.100/24\nGATEWAY=10.0.0.254\nDNS=10.0.0.1\nSEARCH_DOMAIN=lab.local\nIP_ETH1=none"
+  }
+}

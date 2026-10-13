@@ -1,0 +1,171 @@
+# GNS3 Network Client Appliance
+
+Lightweight Debian-based Docker image optimized for **GNS3 network topology simulations, protocol analysis, and classroom teaching**. Provides a clean, modern interactive terminal equipped with standard network diagnostic tools, Python 3, and Java runtime, with 2 network interfaces by default.
+
+> **Repository**: [https://github.com/skleber/gns3-netclient](https://github.com/skleber/gns3-netclient)  
+> **Author & Maintainer**: Stephan Kleber  
+> **License**: [GNU General Public License v3.0 (GPLv3)](LICENCE)
+
+---
+
+## Key Features
+
+* **Beautiful Interactive Terminal**:
+  * 256-color support with custom colored prompt (`netclient:\w# `)
+  * Full programmable **Bash auto-completion** for commands, arguments, hostnames, and IP tools
+  * Colorized aliases pre-configured (`ls --color=auto`, `grep --color=auto`, `ip -color=auto`)
+  * Informational welcome banner displaying active interface IPs, gateway, and DNS configuration
+  * Resilient shell session (exiting the shell respawns without terminating the GNS3 node)
+* **Essential Network Analysis Toolset (Debian Packages)**:
+  * `netcat-bsd` (`netcat-openbsd`): Port scanning, TCP/UDP client/listener, banner grabbing
+  * `ping` (`iputils-ping`): ICMP echo requests and latency measurement
+  * `host` & `dig` (`bind9-dnsutils`): Modern DNS inspection, zone transfer testing, record lookups
+  * `tcpdump`: Real-time packet sniffing and capture
+  * `iproute2` (`ip`, `ss`): Modern routing and socket inspection
+  * `isc-dhcp-client` (`dhclient`): Dynamic IP configuration support
+  * `curl`: HTTP/HTTPS protocol requests and API inspection
+  * `nano`, `less`: Interactive file editing and paging
+* **Language Runtimes Pre-installed**:
+  * `python3`: Interactive Python interpreter for socket scripting and automation
+  * `java` / `openjdk` (`default-jre-headless`): Headless Java runtime for client applications and utilities
+* **Dual Network Interfaces by Default**:
+  * Configured with **2 network adapters** (`eth0` and `eth1`) out of the box in the GNS3 appliance template
+  * Ideal for multi-homed hosts, routing labs, firewall testing, or gateway topologies
+* **Seamless `gns3-bind` Interoperability**:
+  * Automatically configured to connect to the [`gns3-bind`](https://github.com/skleber/gns3-bind) DNS server when placed on the same lab network
+
+---
+
+## Seamless Lab Integration with `gns3-bind`
+
+The appliance defaults are coordinated with the default demonstration configuration of [`gns3-bind`](https://github.com/skleber/gns3-bind):
+
+| Setting | `gns3-netclient` Default | `gns3-bind` Default Demo Mapping |
+|---|---|---|
+| **`eth0` IP** | `10.0.0.100/24` | Pre-mapped to `client.lab.local` (`client,A,10.0.0.100`) |
+| **DNS Resolver** | `10.0.0.1` | Points directly to BIND DNS server (`ns.lab.local`) |
+| **Search Domain** | `lab.local` | Default demo zone hosted by `gns3-bind` |
+| **Default Gateway** | `10.0.0.254` | Matches `router.lab.local` in `gns3-bind` zone |
+
+When you connect `gns3-netclient` and `gns3-bind` to the same GNS3 Ethernet switch, resolution and connectivity work **immediately without any manual setup**:
+
+```bash
+# Verify connectivity to DNS server
+ping 10.0.0.1
+
+# Query demo hosts hosted on gns3-bind
+host www.lab.local
+dig www.lab.local
+dig mail.lab.local MX
+
+# Run automated built-in DNS self-test
+test-dns
+```
+
+---
+
+## GNS3 Quickstart
+
+### Method 1: Import via Appliance Template (Recommended)
+1. In GNS3, go to **File** &rarr; **Import appliance**.
+2. Select [`gns3-netclient.gns3a`](gns3-netclient.gns3a).
+3. The **Network Client** appliance will appear under your **End devices / Guests** palette with **2 network interfaces** and a desktop computer icon.
+4. Drag it into your topology, connect `eth0` (and optionally `eth1`), and start the node.
+
+### Method 2: Pull or Build Manually with Docker
+To pull the pre-built multi-arch image:
+```bash
+docker pull ghcr.io/skleber/gns3-netclient:latest
+```
+
+To build locally from source:
+```bash
+docker build -t ghcr.io/skleber/gns3-netclient:latest .
+```
+
+---
+
+## Environment Variables Reference
+
+All networking parameters can be configured either via GNS3 node properties or Docker environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `IP_ETH0` | `10.0.0.100/24` | IPv4/CIDR address for `eth0`. Set to `dhcp` for DHCP client, or `none` for manual config. |
+| `IP_ETH1` | `none` | IPv4/CIDR address for `eth1`. Set to `dhcp`, an IP/CIDR (e.g. `10.0.1.100/24`), or `none`. |
+| `GATEWAY` | `10.0.0.254` | Default gateway IPv4 address. Set to `none` to disable default route. |
+| `DNS` | `10.0.0.1` | Nameserver IP(s) for `/etc/resolv.conf`. Multiple servers separated by commas or spaces. |
+| `SEARCH_DOMAIN` | `lab.local` | DNS search domain added to `/etc/resolv.conf`. |
+| `HOSTNAME` | `netclient` | Hostname displayed in prompt and system banner. |
+| `WAIT_LINK` | `0` | Set to `1` or `yes` to wait 2 seconds for GNS3 virtual links to establish before assigning IPs. |
+
+---
+
+## Built-in Helper Commands
+
+In addition to standard Linux commands, two helper scripts are installed in `/usr/local/bin`:
+
+### `net-status`
+Displays a colorized summary of:
+* Network interfaces, MAC addresses, and assigned IP addresses (`ip -br addr`)
+* Kernel routing table (`ip route`)
+* Configured DNS resolvers (`/etc/resolv.conf`)
+* Active listening TCP/UDP sockets (`ss -tuln`)
+
+```bash
+netclient:~# net-status
+```
+
+### `test-dns [domain]`
+Performs diagnostic DNS queries against the configured nameserver using both `dig` and `host`. If no domain is provided, it defaults to the configured search domain (e.g. `www.lab.local`).
+
+```bash
+netclient:~# test-dns
+netclient:~# test-dns mail.lab.local
+```
+
+---
+
+## Example Network Topologies
+
+### Scenario A: Simple Client-Server Lab
+```
+[ gns3-bind ] (eth0: 10.0.0.1/24)
+      |
+  [ Switch ]
+      |
+[ gns3-netclient ] (eth0: 10.0.0.100/24, DNS: 10.0.0.1)
+```
+
+### Scenario B: Multi-Homed Host (2 Interfaces)
+Configure in GNS3 container properties:
+```ini
+IP_ETH0=192.168.1.50/24
+IP_ETH1=10.0.0.50/24
+GATEWAY=192.168.1.1
+DNS=10.0.0.1
+```
+
+```
+[ Management LAN ]            [ Lab Network ]
+        |                           |
+     (eth0)                      (eth1)
+     +-------------------------------+
+     |       gns3-netclient          |
+     +-------------------------------+
+```
+
+### Scenario C: Dynamic Host Configuration (DHCP)
+Configure in GNS3 container properties:
+```ini
+IP_ETH0=dhcp
+IP_ETH1=none
+```
+The node automatically runs `dhclient` on startup to acquire IP, gateway, and DNS from a DHCP server.
+
+---
+
+## Authors & License
+
+* **Author & Maintainer**: Stephan Kleber (Copyright (C) 2026) &mdash; [skleber/gns3-netclient](https://github.com/skleber/gns3-netclient)
+* **License**: [GNU General Public License v3.0 (GPLv3)](LICENCE)

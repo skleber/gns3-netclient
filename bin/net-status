@@ -1,0 +1,41 @@
+#!/bin/bash
+# net-status: Display clear network configuration summary for GNS3 netclient
+set -e
+
+BOLD="\033[1m"
+GREEN="\033[32m"
+CYAN="\033[36m"
+YELLOW="\033[33m"
+RESET="\033[0m"
+
+echo -e "${BOLD}${CYAN}=== Network Client Status ===${RESET}"
+
+echo -e "\n${BOLD}${GREEN}Interfaces & Addresses:${RESET}"
+if command -v ip >/dev/null 2>&1; then
+    ip -color=always -br addr show || ip -br addr show
+else
+    ifconfig
+fi
+
+echo -e "\n${BOLD}${GREEN}Routing Table:${RESET}"
+if command -v ip >/dev/null 2>&1; then
+    ip -color=always route show || ip route show
+else
+    route -n
+fi
+
+echo -e "\n${BOLD}${GREEN}DNS Resolvers (/etc/resolv.conf):${RESET}"
+if [ -f /etc/resolv.conf ]; then
+    grep -E '^(nameserver|search|domain)' /etc/resolv.conf || echo "  (no nameserver configured)"
+else
+    echo "  /etc/resolv.conf not found"
+fi
+
+echo -e "\n${BOLD}${GREEN}Listening Sockets:${RESET}"
+if command -v ss >/dev/null 2>&1; then
+    ss -tuln
+else
+    netstat -tuln
+fi
+
+echo -e "${BOLD}${CYAN}=============================${RESET}"
