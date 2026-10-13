@@ -31,56 +31,88 @@ if ! grep -q "$CLIENT_HOSTNAME" /etc/hosts 2>/dev/null; then
 fi
 
 # Bring up loopback
-ip link set lo up 2>/dev/null || true
-
-# Function to configure a network interface
-configure_interface() {
-    local iface="$1"
-    local cfg="$2"
-
-    if [ ! -d "/sys/class/net/$iface" ]; then
-        return 0
-    fi
-
-    ip link set "$iface" up 2>/dev/null || true
-
-    case "$cfg" in
-        dhcp|DHCP)
-            echo "[*] Requesting DHCP lease on $iface..."
-            if command -v dhclient >/dev/null 2>&1; then
-                dhclient -q -nw "$iface" 2>/dev/null || true
-            elif command -v udhcpc >/dev/null 2>&1; then
-                udhcpc -b -i "$iface" 2>/dev/null || true
-            fi
-            ;;
-        none|NONE|manual|MANUAL|"")
-            # Leave interface up without configured static IP
-            ;;
-        *)
-            ip addr flush dev "$iface" 2>/dev/null || true
-            ip addr add "$cfg" dev "$iface" 2>/dev/null || true
-            ;;
-    esac
-}
-
-# Configure interfaces
-configure_interface "eth0" "$IP_ETH0"
-configure_interface "eth1" "$IP_ETH1"
-
-# Configure default gateway if specified
-if [ -n "$GATEWAY" ] && [ "$GATEWAY" != "none" ] && [ "$GATEWAY" != "NONE" ]; then
-    ip route replace default via "$GATEWAY" 2>/dev/null || ip route add default via "$GATEWAY" 2>/dev/null || true
+if command -v ifup >/dev/null 2>&1; then
+    ifup lo 2>/dev/null || ip link set lo up 2>/dev/null || true
+else
+    ip link set lo up 2>/dev/null || true
 fi
 
-# Configure DNS resolver if specified
-if [ -n "$DNS" ] && [ "$DNS" != "none" ] && [ "$DNS" != "NONE" ]; then
-    {
-        [ -n "$SEARCH_DOMAIN" ] && echo "search $SEARCH_DOMAIN"
-        # Support space or comma delimited nameserver addresses
-        for ns in $(echo "$DNS" | tr ',' ' '); do
-            [ -n "$ns" ] && echo "nameserver $ns"
-        done
-    } > /etc/resolv.conf 2>/dev/null || true
+# Network configuration
+# Method 1: GNS3 Stock Network Configuration (/etc/network/interfaces)
+IFUP_CONFIGURED=0
+if [ -f /etc/network/interfaces ] && grep -E '^\s*(iface|auto)\s+eth' /etc/network/interfaces >/dev/null 2>&1; then
+    echo "[*] Applying GNS3 network configuration from /etc/network/interfaces..."
+    if command -v ifup >/dev/null 2>&1; then
+        ifup -a 2>/dev/null || true
+        IFUP_CONFIGURED=1
+    fi
+
+    # Parse dns-nameservers and dns-search if resolv.conf was not already populated
+    if ! grep -q "nameserver" /etc/resolv.conf 2>/dev/null; then
+        DNS_NS=$(grep -E '^\s*dns-nameservers' /etc/network/interfaces 2>/dev/null | awk '{$1=""; print $0}')
+        DNS_SEARCH=$(grep -E '^\s*dns-search' /etc/network/interfaces 2>/dev/null | awk '{print $2}')
+        if [ -n "$DNS_NS" ]; then
+            {
+                [ -n "$DNS_SEARCH" ] && echo "search $DNS_SEARCH"
+                for ns in $DNS_NS; do
+                    [ -n "$ns" ] && echo "nameserver $ns"
+                done
+            } > /etc/resolv.conf 2>/dev/null || true
+        fi
+    fi
+fi
+
+# Method 2: Environment variables (fallback or explicit override)
+if [ "$IFUP_CONFIGURED" -eq 0 ]; then
+    configure_interface() {
+        local iface="$1"
+        local cfg="$2"
+
+        if [ ! -d "/sys/class/net/$iface" ]; then
+            return 0
+        fi
+
+        ip link set "$iface" up 2>/dev/null || true
+
+        case "$cfg" in
+            dhcp|DHCP)
+                echo "[*] Requesting DHCP lease on $iface..."
+                if command -v dhclient >/dev/null 2>&1; then
+                    dhclient -q -nw "$iface" 2>/dev/null || true
+                elif command -v udhcpc >/dev/null 2>&1; then
+                    udhcpc -b -i "$iface" 2>/dev/null || true
+                fi
+                ;;
+            none|NONE|manual|MANUAL|"")
+                ;;
+            *)
+                ip addr flush dev "$iface" 2>/dev/null || true
+                ip addr add "$cfg" dev "$iface" 2>/dev/null || true
+                ;;
+        esac
+    }
+
+    IP_ETH0="${IP_ETH0:-10.0.0.100/24}"
+    IP_ETH1="${IP_ETH1:-none}"
+    GATEWAY="${GATEWAY:-10.0.0.254}"
+    DNS="${DNS:-10.0.0.1}"
+    SEARCH_DOMAIN="${SEARCH_DOMAIN:-lab.local}"
+
+    configure_interface "eth0" "$IP_ETH0"
+    configure_interface "eth1" "$IP_ETH1"
+
+    if [ -n "$GATEWAY" ] && [ "$GATEWAY" != "none" ] && [ "$GATEWAY" != "NONE" ]; then
+        ip route replace default via "$GATEWAY" 2>/dev/null || ip route add default via "$GATEWAY" 2>/dev/null || true
+    fi
+
+    if [ -n "$DNS" ] && [ "$DNS" != "none" ] && [ "$DNS" != "NONE" ]; then
+        {
+            [ -n "$SEARCH_DOMAIN" ] && echo "search $SEARCH_DOMAIN"
+            for ns in $(echo "$DNS" | tr ',' ' '); do
+                [ -n "$ns" ] && echo "nameserver $ns"
+            done
+        } > /etc/resolv.conf 2>/dev/null || true
+    fi
 fi
 
 # Print startup banner

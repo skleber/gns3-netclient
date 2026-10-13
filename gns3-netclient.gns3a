@@ -15,7 +15,6 @@
   "docker": {
     "adapters": 2,
     "image": "ghcr.io/skleber/gns3-netclient:latest",
-    "console_type": "telnet",
-    "environment": "IP_ETH0=10.0.0.100/24\nGATEWAY=10.0.0.254\nDNS=10.0.0.1\nSEARCH_DOMAIN=lab.local\nIP_ETH1=none"
+    "console_type": "telnet"
   }
 }

@@ -1,0 +1,32 @@
+# /etc/network/interfaces
+# GNS3 Network Configuration for Network Client
+#
+# You can edit this configuration via GNS3: Right-click node -> "Edit config"
+
+# Loopback interface
+auto lo
+iface lo inet loopback
+
+# eth0: Pre-configured to seamlessly resolve against gns3-bind (10.0.0.1)
+auto eth0
+iface eth0 inet static
+    address 10.0.0.100
+    netmask 255.255.255.0
+    gateway 10.0.0.254
+    up echo nameserver 10.0.0.1 > /etc/resolv.conf
+    up echo search lab.local >> /etc/resolv.conf
+
+# To use DHCP on eth0 instead, uncomment below and comment the static block above:
+# auto eth0
+# iface eth0 inet dhcp
+
+# eth1: Second network adapter (default unconfigured)
+# Uncomment to enable DHCP:
+# auto eth1
+# iface eth1 inet dhcp
+#
+# Or static configuration:
+# auto eth1
+# iface eth1 inet static
+#     address 10.0.1.100
+#     netmask 255.255.255.0

@@ -85,9 +85,42 @@ docker build -t ghcr.io/skleber/gns3-netclient:latest .
 
 ---
 
-## Environment Variables Reference
+## Network Configuration
 
-All networking parameters can be configured either via GNS3 node properties or Docker environment variables:
+The appliance supports **both** standard configuration methods:
+
+### Method A: GNS3 Stock "Edit config" (Recommended)
+
+Right-click the node in GNS3 &rarr; **Edit config**. This opens the standard `/etc/network/interfaces` file in GNS3's built-in editor:
+
+```ini
+# /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+# eth0: Pre-configured for gns3-bind (10.0.0.1)
+auto eth0
+iface eth0 inet static
+    address 10.0.0.100
+    netmask 255.255.255.0
+    gateway 10.0.0.254
+    up echo nameserver 10.0.0.1 > /etc/resolv.conf
+    up echo search lab.local >> /etc/resolv.conf
+
+# To use DHCP on eth0 instead:
+# auto eth0
+# iface eth0 inet dhcp
+
+# eth1: Second network adapter (uncomment as needed)
+# auto eth1
+# iface eth1 inet dhcp
+```
+
+When the node boots, `ifupdown` automatically reads this configuration and applies all IP addresses, gateways, and DNS settings.
+
+### Method B: Environment Variables (Alternative / Headless)
+
+If you prefer configuring nodes headlessly or via Docker parameters without editing files:
 
 | Variable | Default | Description |
 |---|---|---|

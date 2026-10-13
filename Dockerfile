@@ -37,6 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     default-jre-headless \
     iproute2 \
+    ifupdown \
     isc-dhcp-client \
     curl \
     nano \
@@ -48,6 +49,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Configure terminal environment and completion
 COPY etc/bash.bashrc /etc/bash.bashrc
 RUN echo "source /etc/bash.bashrc" >> /root/.bashrc
+
+# Default network configuration (GNS3 Edit config template)
+COPY etc/network/interfaces /etc/network/interfaces
 
 # Install helper tools and startup script
 COPY bin/ /usr/local/bin/
